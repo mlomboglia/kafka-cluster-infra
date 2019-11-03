@@ -1,0 +1,125 @@
+# Install Packages
+- name: Install the Zookeeper Packages
+  yum:
+    name: "{{item}}-{{confluent.package_version}}"
+    state: latest
+  loop: "{{zookeeper_packages}}"
+  when: ansible_os_family == "RedHat"
+
+- name: Install the Zookeeper Packages
+  apt:
+    name: "{{item}}={{confluent.package_version}}"
+    update_cache: yes
+  loop: "{{zookeeper_packages}}"
+  when: ansible_os_family == "Debian"
+
+# Configure environment
+- name: Create Zookeeper Group
+  group:
+    name: "{{zookeeper.group}}"
+
+- name: Create Zookeeper User
+  user:
+    name: "{{zookeeper.user}}"
+    comment: "Zookeeper User"
+    system: yes
+    group: "{{zookeeper.group}}"
+
+- name: Create Keytabs Directory
+  file:
+    path: "{{kerberos.keytab_dir}}"
+    group: "{{zookeeper.group}}"
+    mode: '650'
+    recurse: yes
+  when: sasl_protocol == 'kerberos'
+
+- name: Copy in Keytab File
+  copy:
+    src: "{{zookeeper_kerberos_keytab_path}}"
+    dest: "{{kerberos.keytab_dir}}/{{zookeeper_kerberos_keytab_path | basename}}"
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+    mode: '600'
+  when: sasl_protocol == 'kerberos'
+  notify:
+    - restart zookeeper
+
+- name: Create Zookeeper myid File
+  template:
+    src: myid.j2
+    dest: "{{zookeeper.properties.dataDir}}/myid"
+    mode: 0555
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+
+- name: Create Zookeeper Config
+  template:
+    src: zookeeper.properties.j2
+    dest: "{{zookeeper.config_file}}"
+    mode: 0400
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+  register: zookeeper_config
+  notify:
+    - restart zookeeper
+
+- name: Create Log Directory
+  file:
+    path: "{{zookeeper.log_path}}"
+    group: "{{zookeeper.group}}"
+    owner: "{{zookeeper.user}}"
+    mode: '764'
+    recurse: yes
+  
+- name: Create Zookeeper log4j config
+  template:
+    src: zookeeper_log4j.properties.j2
+    dest: "{{zookeeper.log4j_file}}"
+    mode: 0640
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+  notify:
+    - restart zookeeper
+
+- name: Create Zookeeper Jaas config
+  template:
+    src: zookeeper_jaas.conf.j2
+    dest: "{{zookeeper_jaas_file}}"
+    mode: 0640
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+  when: sasl_protocol == "kerberos"
+  notify:
+    - restart zookeeper
+
+- name: Create Service Override Directory
+  file:
+    path: "{{zookeeper.systemd_override}}"
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+    state: directory
+    mode: 0640
+
+- name: Write Service Overrides
+  template:
+    src: override.conf.j2
+    dest: "{{zookeeper.systemd_override}}/override.conf"
+    mode: 0640
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+  notify:
+    - reload systemd
+    - restart zookeeper
+
+- name: Certs were Updated - Trigger Restart
+  command: /bin/true
+  notify: restart zookeeper
+  when: certs_updated|bool
+
+- meta: flush_handlers
+
+- name: Start Zookeeper Service
+  systemd:
+    name: "{{zookeeper.service_name}}"
+    enabled: "{{zookeeper.systemd.enabled}}"
+    state: "{{zookeeper.systemd.state}}"

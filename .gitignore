@@ -5,3 +5,4 @@
 *.jar
 *.terraform
 *.DS_Store
+hosts.yml 

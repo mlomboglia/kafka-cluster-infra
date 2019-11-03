@@ -10,6 +10,7 @@ resource "aws_instance" "rest" {
     vpc_security_group_ids = ["${aws_security_group.kafka_sg.id}"] 
     subnet_id = "${aws_subnet.default.id}"
     associate_public_ip_address = true
+    source_dest_check = false
     tags = {
         Name = "kafka-rest-${var.instance_prefix}-${format("%02d", count.index+1)}"
     }
@@ -23,6 +24,7 @@ resource "aws_instance" "connect" {
     vpc_security_group_ids = ["${aws_security_group.kafka_sg.id}"] 
     subnet_id = "${aws_subnet.default.id}"
     associate_public_ip_address = true
+    source_dest_check = false
     tags = {
         Name = "kafka-connect-${var.instance_prefix}-${format("%02d", count.index+1)}"
     }
@@ -36,6 +38,7 @@ resource "aws_instance" "ksql" {
     vpc_security_group_ids = ["${aws_security_group.kafka_sg.id}"] 
     subnet_id = "${aws_subnet.default.id}"
     associate_public_ip_address = true
+    source_dest_check = false
     tags = {
         Name = "kafka-ksql-${var.instance_prefix}-${format("%02d", count.index+1)}"
     }
@@ -48,6 +51,7 @@ resource "aws_instance" "control_center" {
     vpc_security_group_ids = ["${aws_security_group.kafka_sg.id}"] 
     subnet_id = "${aws_subnet.default.id}"
     associate_public_ip_address = true
+    source_dest_check = false
     tags = {
         Name = "kafka-control-center-${var.instance_prefix}-${format("%02d", count.index+1)}"
     }
@@ -61,6 +65,7 @@ resource "aws_instance" "schema" {
     vpc_security_group_ids = ["${aws_security_group.kafka_sg.id}"] 
     subnet_id = "${aws_subnet.default.id}"
     associate_public_ip_address = true
+    source_dest_check = false
     tags = {
         Name = "kafka-schema-${var.instance_prefix}-${format("%02d", count.index+1)}"
     }
@@ -74,6 +79,7 @@ resource "aws_instance" "broker" {
     vpc_security_group_ids = ["${aws_security_group.kafka_sg.id}"] 
     subnet_id = "${aws_subnet.default.id}"
     associate_public_ip_address = true
+    source_dest_check = false
     tags = {
         Name = "kafka-broker-${var.instance_prefix}-${format("%02d", count.index+1)}"
     }
@@ -87,6 +93,7 @@ resource "aws_instance" "zookeeper" {
     vpc_security_group_ids = ["${aws_security_group.kafka_sg.id}"] 
     subnet_id = "${aws_subnet.default.id}"
     associate_public_ip_address = true
+    source_dest_check = false
     tags = {
         Name = "kafka-zookeeper-${var.instance_prefix}-${format("%02d", count.index+1)}"
     }

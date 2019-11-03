@@ -1,0 +1,73 @@
+# Control Center Configuration
+confluent.controlcenter.rest.listeners={{control_center_http_protocol}}://0.0.0.0:{{control_center_port}}
+{% if control_center_ssl_enabled|bool %}
+confluent.controlcenter.rest.ssl.keystore.location={{keystore_path}}
+confluent.controlcenter.rest.ssl.keystore.password={{keystore_storepass}}
+confluent.controlcenter.rest.ssl.key.password={{keystore_keypass}}
+{% if control_center_ssl_mutual_auth_enabled|bool %}
+confluent.controlcenter.rest.ssl.truststore.location={{truststore_path}}
+confluent.controlcenter.rest.ssl.truststore.password={{truststore_storepass}}
+{% endif %}
+{% endif %}
+
+{% set cfg = control_center.properties %}
+{% for key, value in cfg.items() %}
+{{key}}={{value}}
+{% endfor %}
+
+# Kafka Brokers
+bootstrap.servers={% for host in groups['kafka_broker'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{kafka_port}}{% endfor %}
+
+confluent.controlcenter.streams.security.protocol={{kafka_broker_security_protocol}}
+{% if kafka_broker_ssl_enabled|bool %}
+confluent.controlcenter.streams.ssl.truststore.location={{truststore_path}}
+confluent.controlcenter.streams.ssl.truststore.password={{truststore_storepass}}
+{% if kafka_broker_ssl_mutual_auth_enabled|bool %}
+confluent.controlcenter.streams.ssl.keystore.location={{keystore_path}}
+confluent.controlcenter.streams.ssl.keystore.password={{keystore_storepass}}
+confluent.controlcenter.streams.ssl.key.password={{keystore_keypass}}
+{% endif %}
+{% endif %}
+{% if sasl_protocol == 'plain' %}
+confluent.controlcenter.streams.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="client" password="client-secret";
+confluent.controlcenter.streams.sasl.mechanism=PLAIN
+{% endif %}
+{% if sasl_protocol == 'kerberos' %}
+confluent.controlcenter.streams.sasl.mechanism=GSSAPI
+confluent.controlcenter.streams.sasl.kerberos.service.name={{kerberos_kafka_broker_primary}}
+confluent.controlcenter.streams.sasl.jaas.config=com.sun.security.auth.module.Krb5LoginModule required \
+   useKeyTab=true \
+   storeKey=true \
+   keyTab="{{kerberos.keytab_dir}}/{{control_center_kerberos_keytab_path | basename}}" \
+   principal="{{control_center_kerberos_principal}}";
+{% endif %}
+
+{% set schema_registries = groups.get('schema_registry', []) %}
+{% if schema_registries %}
+# Schema Registry Configuration
+confluent.controlcenter.schema.registry.url={% for host in groups['schema_registry'] %}{% if loop.index > 1%},{% endif %}{{ schema_registry_http_protocol }}://{{ host }}:{{ schema_registry_listener_port }}{% endfor %}
+
+{% if schema_registry_ssl_enabled|bool %}
+confluent.controlcenter.schema.registry.ssl.truststore.location={{truststore_path}}
+confluent.controlcenter.schema.registry.ssl.truststore.password={{truststore_storepass}}
+{% if schema_registry_ssl_mutual_auth_enabled|bool %}
+confluent.controlcenter.schema.registry.ssl.keystore.location={{keystore_path}}
+confluent.controlcenter.schema.registry.ssl.keystore.password={{keystore_storepass}}
+confluent.controlcenter.schema.registry.ssl.key.password={{keystore_keypass}}
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% set connect_servers = groups.get('kafka_connect', []) %}
+{% if connect_servers %}
+# Kafka Connect Configuration
+confluent.controlcenter.connect.default.cluster={% for host in groups['kafka_connect'] %}{% if loop.index > 1%},{% endif %}{{ kafka_connect_http_protocol }}://{{ host }}:{{ kafka_connect_rest_port }}{% endfor %}
+
+{% endif %}
+
+{% set ksql_servers = groups.get('ksql', []) %}
+{% if ksql_servers and cfg.get('confluent.controlcenter.ksql.enable', 'false').lower() == 'true' %}
+# KSQL Configuration
+confluent.controlcenter.ksql.url={{ ksql_http_protocol }}://{{ ksql_servers[0] }}:{{ ksql_listener_port }}
+
+{% endif %}
