@@ -43,7 +43,7 @@ variable "public_subnet_cidr" {
 
 variable "key_name" {
   description = "Key Pair"
-  default     = "Marcos"
+  default     = "terraform-ansible-pair"
 }
 
 

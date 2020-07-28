@@ -93,7 +93,7 @@ resource "aws_security_group" "kafka_sg" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 
-    vpc_id = "${aws_vpc.default.id}"
+    vpc_id = aws_vpc.default.id
 
     tags = {
         Name = "kafka_cluster_sg"
